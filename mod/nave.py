@@ -15,7 +15,7 @@ CODIGOS DEL MÓDULO os
     * Crea una carpeta, en éste caso, en la carpeta actual
         - os.mkdir("Nombre_de_Carpeta")
     
-    * Devuelve True/False si en cuentra una carpeta buscada
+    * Devuelve True/False si en cuentra una carpeta buscada, si es el path de un archivo devuelve False
         - os.path.isdir("Nombre_de_carpeta_buscada")
     
     * Devuelve información de un archivo en bytes
@@ -47,106 +47,96 @@ CODIGOS DEL MÓDULO shutil
 import os
 import shutil
 
-# Busca archivos en la carpeta indicada, y subcarpetas si así se indica
-    # Se devuelve una variable y 2 listas:
-    # (1) Encontrada: variable que indica que el path que se le dió fue encontrado correctamente
-    # (2) ListaCar: Lista que tiene todas las carpetas encontradas, siendo la posición 0, la misma carpeta que se usó para llamar a ésta función
-    # (3) ListaArc: Lista que contiene todos los archivos encontrados, salvo que están todos juntos y donde a cada uno se le antepone un número para indicar a qué carpeta
-        # pertencece dentro de la ListaCar. Entonces por ejemplo si se busca en una carpeta que dentro tiene 4 carpetas, la ListaCar contiene 5 posiciones (de 0 a 4), la 
-        # carpeta raíz y las 4 carpetas encontradas, luego en la ListaArc si un archivo por ejemplo dice "4***Musica.mp3", quiere decir que ese tema está dentro de la quinta
-        # posición que posee la ListaCar, o sea la última carpeta encontrada.
-    # En la variable que llega por parámetro "SubCarpetas_VF" se indica con True/False si se quieren revisar las subcarpetas, y con los Tipo(n) se pueden indicar hasta 10 
-    # formatos distintos de archivos, si no se pone nada devuelve todos los archivos encontrados, y si se pone por ejemplo "mp3" sólo devuelve los archivos mp3.
-    # IMPORTANTE: Cabe aclarar que deben cargarse en orden los formatos, es decir, que primero hay que utilizar el parámetro Tipo0, luego Tipo1, y así sucesivamente ya que al encontrarse con un parámetro vacío ignora el resto, y también se debe ignorar el punto al indicar el formato: "mp3" = BIEN /// ".mp3" = MAL
-def Dev_archivo_lista(Carpeta, SubCarpetas_VF, Tipo0 = "", Tipo1 = "", Tipo2 = "", Tipo3 = "", Tipo4 = "", Tipo5 = "", Tipo6 = "", Tipo7 = "", Tipo8 = "", Tipo9 = ""):
-    # Bandera que indica si se encontró la carpeta que vino por parámetro
-    Encontrada = False
-    # Creamos las listas donde se van a guardar los nombres de carpetas y archivos
-    ListaCar = []
-    ListaArc = []
-    # Este if es sólo verdadero si la carpeta raíz existe
+# Recibe parámetros para realizar búsqueda de archivos o carpetas y los devuelve en una Lista.
+    # Parámetros:
+    # Carpeta: Es la CARPETA PRINCIPAL de donde se buscarían los archivos (Cuando se hace referencia a la CARPETA PRINCIPAL, se refiere a ésta que ingresa por parámetro).
+    # SubCarpetas_VF: Con True/False, se indica si se desea mantener la búsqueda en las subcarpetas.
+    # Tipo1,2,3,4 y 5: Se le puede indicar hasta 5 extenciones de archivos distintas para realizar búsquedas(xej: xls, xlsx, xlsm, etc). Si no se indican archivos incluye todos.
+def Dev_Dir(Carpeta, SubCarpetas_VF = False, Tipo1 = "", Tipo2 = "", Tipo3 = "", Tipo4 = "", Tipo5 = ""):
+    
+    # Creamos las listas necesarias para la búsqueda
+    Lista_Final = []
+    Lista_AuxF = []
+    Lista_AuxC = []
+    Lista_AuxA = []
+    Lista_Aux_Car = []
+    
+    # Este if es sólo verdadero si la carpeta principal existe
     if os.path.isdir(Carpeta):
-        Encontrada = True
-        # Cargamos los valores de la lista en la posición actual
-        ListaAuxC, ListaAuxA = Dev_Carpetas_Archivos(Carpeta)
-        ListaCar.append(Carpeta)
-        for pos in ListaAuxC:
-            ListaCar.append(Carpeta + "/" + pos)
-        for pos in ListaAuxA:
-            ListaArc.append("0***" + pos)
-        # Si el parámetro "SubCarpetas_VF" es True: Revisamos las subcarpetas, sino no
-        if SubCarpetas_VF == True:
-            # Si hay carpetas, las analizamos
-            Largo = len(ListaCar)
-            if Largo > 1:
-                cont = 1
-                Camino = ""
-                Revisar = True
-                while Revisar == True:
-                    ListaAuxC = []
-                    ListaAuxA = []
-                    Camino = ListaCar[cont]
-                    ListaAuxC, ListaAuxA = Dev_Carpetas_Archivos(Camino)
-                    for i in ListaAuxC:
-                        ListaCar.append(Camino + "/" + i)
-                    for i in ListaAuxA:
-                        ListaArc.append(str(cont) + "***" + i)
-                    Largo = len(ListaCar)
-                    cont += 1
-                    if cont == Largo:
-                        Revisar = False
-        # Una vez que tenemos todos los archivos y carpetas correctos, analizamos sus formatos si es que se han indicado, se aceptan hasta 10 formatos distintos
-        if Tipo0 != "" or Tipo1 != "" or Tipo2 != "" or Tipo3 != "" or Tipo4 != "" or Tipo5 != "" or Tipo6 != "" or Tipo7 != "" or Tipo8 != "" or Tipo9 != "":
-            # Lista que cargará los archivos que coincidan con la extensión y luego reasignará los valores de la ListaArc
-            ListaAuxA = []
-            # Contador para recorrer todas las posiciones
+        
+        # Cargamos 2 listas que contienen las carpetas y archivos de la "Carpeta Principal"
+        Lista_AuxC, Lista_AuxA = Dev_Carpetas_Archivos(Carpeta)
+        
+        # Creamos el primer dato de la lista
+        Lista_AuxF = Dev_Filtrado(Carpeta, Lista_AuxA, Tipo1, Tipo2, Tipo3, Tipo4, Tipo5)
+        Lista_Final.append(Lista_AuxF)
+        if SubCarpetas_VF:
+            
+            # Preparamos y ejecutamos un bucle para recorrer todas las carpetas que hayan
             cont = 0
-            tope = len(ListaArc)
-            # Bucle que recorre todos los archivos y sólo carga en "ListaAuxA" aquellos que contengan las extenciones indicadas por parámetro
-            while cont < tope:
-                NombreArchivo = ListaArc[cont]
-                Extension = Dev_Extencion(NombreArchivo)
-                if Tipo0 != "":
-                    if Extension == Tipo0:
-                        ListaAuxA.append(NombreArchivo)
-                    else:
-                        if Extension == Tipo1:
-                            ListaAuxA.append(NombreArchivo)
-                        else:
-                            if Tipo2 != "":
-                                if Extension == Tipo2:
-                                    ListaAuxA.append(NombreArchivo)
-                                else:
-                                    if Tipo3 != "":
-                                        if Extension == Tipo3:
-                                            ListaAuxA.append(NombreArchivo)
-                                        else:
-                                            if Tipo4 != "":
-                                                if Extension == Tipo4:
-                                                    ListaAuxA.append(NombreArchivo)
-                                                else:
-                                                    if Tipo5 != "":
-                                                        if Extension == Tipo5:
-                                                            ListaAuxA.append(NombreArchivo)
-                                                        else:
-                                                            if Tipo6 != "":
-                                                                if Extension == Tipo6:
-                                                                    ListaAuxA.append(NombreArchivo)
-                                                                else:
-                                                                    if Tipo7 != "":
-                                                                        if Extension == Tipo7:
-                                                                            ListaAuxA.append(NombreArchivo)
-                                                                        else:
-                                                                            if Tipo8 != "":
-                                                                                if Extension == Tipo8:
-                                                                                    ListaAuxA.append(NombreArchivo)
-                                                                                else:
-                                                                                    if Tipo9 != "":
-                                                                                        if Extension == Tipo9:
-                                                                                            ListaAuxA.append(NombreArchivo)
+            Largo = len(Lista_AuxC)
+            while cont < Largo:
+                
+                # Aunque no sea necesario porque se van a sobreescribir, limpiamos las 3 listas que vamos a utilizar en el bucle
+                Lista_AuxF = []
+                Lista_Aux_Car = []
+                Lista_AuxA = []
+                
+                # Desde la lista "Lista_AuxC", obtenemos los archivos y carpetas que hay en esa lista de carpetas
+                Lista_Aux_Car, Lista_AuxA = Dev_Carpetas_Archivos(Lista_AuxC[cont])
+                
+                # Si dentro de una carpeta se encontraron más carpetas, se agregan sus Path para luego poder recorrerlos con éste mismo bucle
+                if len(Lista_Aux_Car) > 0:
+                    Lista_AuxC += Lista_Aux_Car
+                    # Actualizamos el valor de la variable que se usa para determinar el fin del bucle en el while
+                    Largo += len(Lista_Aux_Car)
+                
+                # Empezamos a preparar el siguiente dato
+                Lista_AuxF = Dev_Filtrado(Lista_AuxC[cont], Lista_AuxA, Tipo1, Tipo2, Tipo3, Tipo4, Tipo5)
+                
+                # Cargamos un nuevo dato a la lista final
+                Lista_Final.append(Lista_AuxF)
                 cont += 1
-            ListaArc = ListaAuxA
-    return Encontrada, ListaCar, ListaArc
+
+    return Lista_Final
+
+# Puede eliminar tanto carpetas como archivos, en el caso de que la carpeta contenga archivos, necesita una confirmación
+# Devuelve resultados en números enteros indicando: 0= Se eliminó sin problemas. 1= Hubo algún error. 2= No se eliminó por falta de confirmación
+def Elimina(Direccion, Elimina_Interior_VF = False):
+    # Para evitar que una falla cierre el programa, utilizamos un try
+    try:
+        # True: Cuando es una carpeta. False: Cuando es un archivo
+        if os.path.isdir(Direccion):
+
+            # Primero debemos determinar si es un archivo o una carpeta, luego, en caso de ser carpeta, debemos controlar si contiene archivos dentro
+            Lista_Carpetas = []
+            Lista_Archivos = []
+            Lista_Carpetas, Lista_Archivos = Dev_Carpetas_Archivos(Direccion)
+
+            # True: Cuando la carpeta contiene archivos. False: Carpeta vacía
+            if len(Lista_Archivos) > 0:
+                if Elimina_Interior_VF == True:
+                    shutil.rmtree(DIreccion)
+                    return 0
+                else:
+                    return 2
+            else:
+                os.rmdir(Direccion)
+                return 0
+        else:
+            os.unlink(Direccion)
+            return 0
+    except:
+        return 1
+
+# Los parámetros deben venir en con el path completo
+def Copiar_Lista(Lista_Archivos, Destino):
+    for i in Lista_Archivos:
+        shutil.copy(i,Destino)
+
+# Ambos parámetros deben venir en con el path completo
+def Copiar(Archivo, Destino):
+    shutil.copy(Archivo,Destino)
 
 '''########################################################################################################################################
 ###########################################################################################################################################
@@ -163,22 +153,62 @@ def Dev_Extencion(Texto):
         if Texto[pos] == ".":
             return Texto[pos + 1:]
 
-# Es una función auxiliar. Busca según el path indicado por parámetro y devuelve una lista de carpetas y archivos encontrados.
-# Nota: La existencia de la carpeta debe controlarse antes de que se llame a ésta función.
+# Busca según el path indicado por parámetro y devuelve una lista de carpetas y archivos encontrados.
+    # Nota1: La existencia de la carpeta debe controlarse antes de que se llame a ésta función.
+    # Nota2: Las carpetas que devuelve, es con su Path completo.
 def Dev_Carpetas_Archivos(Carpeta):
     # Creamos las listas donde se van a guardar los nombres de carpetas y archivos
     ListaCar = []
     ListaArc = []
     # Guardamos todos los archivos encontrados en una lista
     Lista2 = os.listdir(Carpeta)
-    # Recorremos la lista para separar las carpetas de los archivos y ya quedan las listar cargadas
+    # Recorremos la lista para separar las carpetas de los archivos y ya quedan las listas cargadas
     Largo = len(Lista2)
     cont = 0
     while cont < Largo:
-        if os.path.isdir(Carpeta + "/" + Lista2[cont]):
-            ListaCar.append(Lista2[cont])
+        Carpeta_Aux = Carpeta + "\\" + Lista2[cont]
+        if os.path.isdir(Carpeta_Aux):
+            ListaCar.append(Carpeta_Aux)
         else:
             ListaArc.append(Lista2[cont])
         cont += 1
     return ListaCar, ListaArc
 
+# Recibe un Path de una carpeta, una lista de archivos y los parámetros para filtrar los archivos
+# Devuelve una lista donde su primer elemento es el Path de la carpeta, y le siguen los archivos que coincidan con los formatos buscados, y si no especifica formatos
+    # devuelve todos los archivos
+def Dev_Filtrado(Carpeta, Lista, Tipo1 = "", Tipo2 = "", Tipo3 = "", Tipo4 = "", Tipo5 = ""):
+    Lista_Aux = []
+    Lista_Aux.append(Carpeta)
+    for pos in Lista:
+        if Tipo1 != "":
+            Extension = Dev_Extencion(pos)
+            if Extension == Tipo1:
+                Lista_Aux.append(pos)
+            else:
+                if Tipo2 != "":
+                    if Extension == Tipo2:
+                        Lista_Aux.append(pos)
+                    else:
+                        if Tipo3 != "":
+                            if Extension == Tipo3:
+                                Lista_Aux.append(pos)
+                            else:
+                                if Tipo4 != "":
+                                    if Extension == Tipo4:
+                                        Lista_Aux.append(pos)
+                                    else:
+                                        if Tipo5 != "":
+                                            if Extension == Tipo5:
+                                                Lista_Aux.append(pos)
+        else:
+            Lista_Aux.append(pos)
+    return Lista_Aux
+
+def Imprimimos():
+    Lista = Dev_Dir(r"D:\Programación\Python\Proyectos", True, "mp3")
+    for i in Lista:
+        print(i)
+        print()
+
+Imprimimos()
